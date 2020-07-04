@@ -3,8 +3,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlMeta;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.mysql.cj.protocol.a.MysqlBinaryValueDecoder;
-import org.w3c.dom.html.HTMLElement;
 
 import java.io.IOException;
 import java.sql.Connection;
