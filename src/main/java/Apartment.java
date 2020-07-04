@@ -1,17 +1,19 @@
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Apartment {
     int id;
     String site;
     String title;
-    double price;
-    double area;
+    float price;
+    float area;
     int rooms;
     LocalDate postDate;
     String url;
+    LocalDateTime addDate;
 
-    public Apartment(int id, String site, String title, double price, double area, int rooms, LocalDate postDate, String url) {
+    public Apartment(int id, String site, String title, float price, float area, int rooms, LocalDate postDate, String url, LocalDateTime addDate) {
         this.id = id;
         this.site = site;
         this.title = title;
@@ -20,6 +22,7 @@ public class Apartment {
         this.rooms = rooms;
         this.postDate = postDate;
         this.url = url;
+        this.addDate = addDate;
     }
 
     public Apartment() {
@@ -50,19 +53,19 @@ public class Apartment {
         this.title = title;
     }
 
-    public double getPrice() {
+    public float getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(float price) {
         this.price = price;
     }
 
-    public double getArea() {
+    public float getArea() {
         return area;
     }
 
-    public void setArea(double area) {
+    public void setArea(float area) {
         this.area = area;
     }
 
@@ -90,6 +93,14 @@ public class Apartment {
         this.url = url;
     }
 
+    public LocalDateTime getAddDate() {
+        return addDate;
+    }
+
+    public void setAddDate(LocalDateTime addDate) {
+        this.addDate = addDate;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -102,12 +113,13 @@ public class Apartment {
                 site.equals(apartment.site) &&
                 title.equals(apartment.title) &&
                 postDate.equals(apartment.postDate) &&
-                url.equals(apartment.url);
+                url.equals(apartment.url) &&
+                addDate.equals(apartment.addDate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, site, title, price, area, rooms, postDate, url);
+        return Objects.hash(id, site, title, price, area, rooms, postDate, url, addDate);
     }
 
     @Override
@@ -121,6 +133,7 @@ public class Apartment {
                 ", rooms=" + rooms +
                 ", postDate=" + postDate +
                 ", url='" + url + '\'' +
+                ", addDate=" + addDate +
                 '}';
     }
 }
