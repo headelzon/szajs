@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Properties;
 
 public class MySQLAccess {
@@ -13,25 +14,44 @@ public class MySQLAccess {
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
 
-    public void readDataBase() throws Exception {
+    public void readDataBase() {
 
-        try (Connection connection = getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("select * from szajs.Apartments"))
-        {
+        try (Connection connection = getConnection()) {
+            assert connection != null;
 
-            writeResultSet(resultSet);
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("select * from szajs.Apartments"))
+            {
+                writeResultSet(resultSet);
+            }
 
         } catch (Exception e) {
-            throw e;
+            e.printStackTrace();
         }
-
     }
 
-    Connection getConnection() throws SQLException{
+    public int countItems() {
+
+        try (Connection connection = getConnection()) {
+            assert connection != null;
+
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("select count(*) from szajs.Apartments"))
+            {
+                resultSet.next();
+                return resultSet.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private Connection getConnection() {
 
         try {
-            Connection conn = null;
+            Connection conn;
             Properties connectionProps = new Properties();
             connectionProps.put("user", "root");
             connectionProps.put("password", "haslo");
@@ -42,111 +62,93 @@ public class MySQLAccess {
             return conn;
 
         } catch (Exception e) {
-            return null;
+            e.printStackTrace();
         }
+        return null;
     }
 
 
-    public void addApartmentToBatch(Apartment apartment, PreparedStatement statement) throws SQLException {
-        try {
+    public void apartmentBatchInsert(Collection<Apartment> apartmentsCollection) {
+        try (Connection connection = getConnection()) {
+            assert connection != null;
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(
+                                 "insert into szajs.Apartments values (?, ?, ?, ?, ? , ?, ?, ?, ?) " +
+                                         "on duplicate key update url=url")) {
 
-            DateTimeFormatter mySQLformatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                for (Apartment apartment : apartmentsCollection) {
 
-            statement.setInt(1, 0);
-            statement.setString(2, apartment.getSite());
-            statement.setString(3, apartment.getTitle());
-            statement.setFloat(4, apartment.getPrice());
-            statement.setFloat(5, apartment.getArea());
-            statement.setInt(6,apartment.getRooms());
-            statement.setString(7, apartment.getPostDate().format(dateFormatter));
-            statement.setString(8, apartment.getUrl());
-            statement.setString(9, apartment.getAddDate().format(dateTimeFormatter));
+                    preparedStatement.setInt(1, 0);
+                    preparedStatement.setString(2, apartment.getSite());
+                    preparedStatement.setString(3, apartment.getTitle());
+                    preparedStatement.setFloat(4, apartment.getPrice());
+                    preparedStatement.setFloat(5, apartment.getArea());
+                    preparedStatement.setInt(6, apartment.getRooms());
+                    preparedStatement.setString(7, apartment.getPostDate().format(dateFormatter));
+                    preparedStatement.setString(8, apartment.getUrl());
+                    preparedStatement.setString(9, apartment.getAddDate().format(dateTimeFormatter));
 
-            statement.addBatch();
-
-        } catch (Exception e) {
-            throw e;
-        }
-
-    }
-
-    public LocalDate latestDate(Connection connection) throws SQLException {
-
-        try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT MAX(PostDate) AS LatestDate from szajs.Apartments"))
-        {
-
-            LocalDate latestDate;
-
-            resultSet.next();
-
-            latestDate = LocalDate.parse(resultSet.getString("LatestDate"), dateFormatter);
-
-            return latestDate;
-
-        } catch (Exception e) {
-            return null;
-        }
-
-    }
-
-    public ResultSet latestApartments(Connection connection, LocalDate latestDate) throws SQLException {
-
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-
-        try {
-            preparedStatement = connection.prepareStatement("SELECT Url AS Url from szajs.Apartments WHERE PostDate = ?");
-            preparedStatement.setString(1,latestDate.format(dateFormatter));
-            resultSet = preparedStatement.executeQuery();
-
-            return resultSet;
-
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-
-    public boolean alreadyExists(ResultSet latestResultSet, Apartment apartment) throws SQLException {
-        boolean exists = false;
-
-        try {
-
-            while (latestResultSet.next()) {
-
-                if (apartment.getUrl().equals(latestResultSet.getString("Url"))) {
-                    exists = true;
-                    break;
+                    preparedStatement.addBatch();
                 }
+
+                preparedStatement.executeBatch();
+
+            } catch (NullPointerException e) {
+                e.printStackTrace();
             }
 
-            return exists;
-
-        } catch (Exception e) {
-            throw e;
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+
     }
 
-    private void writeResultSet(ResultSet resultSet) throws SQLException {
-        // ResultSet is initially before the first data set
-        while (resultSet.next()) {
-            // It is possible to get the columns via name
-            // also possible to get the columns via the column number
-            // which starts at 1
-            // e.g. resultSet.getSTring(2);
-            int id = resultSet.getInt("ID");
-            String site = resultSet.getString("Site");
-            String title = resultSet.getString("Title");
-            float price = resultSet.getFloat("Price");
-            float area = resultSet.getFloat("Area");
-            int rooms = resultSet.getInt("Rooms");
-            String postDate = resultSet.getString("PostDate");
-            String url = resultSet.getString("Url");
-            String addDate = resultSet.getString("AddDate");
+    LocalDate lastDate() {
 
-            System.out.println("ID: " + id + ", site: " + site + ", title: " + title + ", price: " + price + ", area: "
-                    + area + ", rooms: " + rooms + ", postDate: " + postDate + ", url" + url + ", addDate: " + addDate);
+        try (Connection connection = getConnection()) {
+            assert connection != null;
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT MAX(PostDate) AS LatestDate from szajs.Apartments"))
+            {
 
+                LocalDate lastDate;
+                resultSet.next();
+                lastDate = LocalDate.parse(resultSet.getString("LatestDate"), dateFormatter);
+
+                return lastDate;
+
+            } catch (NullPointerException e) {
+                return null;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void writeResultSet(ResultSet resultSet) {
+
+        try {
+            while (resultSet.next()) {
+
+                int id = resultSet.getInt("ID");
+                String site = resultSet.getString("Site");
+                String title = resultSet.getString("Title");
+                float price = resultSet.getFloat("Price");
+                float area = resultSet.getFloat("Area");
+                int rooms = resultSet.getInt("Rooms");
+                String postDate = resultSet.getString("PostDate");
+                String url = resultSet.getString("Url");
+                String addDate = resultSet.getString("AddDate");
+
+                System.out.println("ID: " + id + ", site: " + site + ", title: " + title + ", price: " + price + ", area: "
+                        + area + ", rooms: " + rooms + ", postDate: " + postDate + ", url: " + url + ", addDate: " + addDate);
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

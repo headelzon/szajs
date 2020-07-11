@@ -1,5 +1,6 @@
+
 abstract class Scraper {
 
-    abstract void scrape();
+    abstract void addNewApartments();
 
 }
